@@ -14,7 +14,9 @@ import (
 	"log"
 	"math"
 	"net/http"
+	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"go-hep.org/x/hep/hplot"
@@ -51,6 +53,18 @@ func imgHandle(title string, cutoff float64) func(w http.ResponseWriter, req *ht
 			log.Printf("error: %+v", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
+		}
+
+		f, err := os.Create("covid-" + strings.ToLower(title) + ".png")
+		if err != nil {
+			log.Printf("error: %+v", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+		defer f.Close()
+		err = png.Encode(f, img)
+		if err != nil {
+			log.Printf("error: %+v", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 	}
 }

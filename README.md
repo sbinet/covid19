@@ -8,9 +8,9 @@ Data is extracted from:
 
 ## Confirmed cases
 
-![img-confirmed](https://github.com/sbinet/covid19/raw/master/img-confirmed.png)
+![covid-confirmed](https://github.com/sbinet/covid19/raw/master/covid-confirmed.png)
 
 ## Deaths
 
-![img-deaths](https://github.com/sbinet/covid19/raw/master/img-deaths.png)
+![covid-deaths](https://github.com/sbinet/covid19/raw/master/covid-deaths.png)
 
