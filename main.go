@@ -89,6 +89,7 @@ func genImage(title string, cutoff float64) (image.Image, error) {
 			return nil, fmt.Errorf("could not create line plot for %q: %w", name, err)
 		}
 		line.Color = plotutil.SoftColors[i]
+		line.Width = 2
 		p.Add(line)
 		p.Legend.Add(fmt.Sprintf("%s %8d", name, int(ys[len(ys)-1])), line)
 	}
@@ -96,6 +97,7 @@ func genImage(title string, cutoff float64) (image.Image, error) {
 		return cutoff * math.Pow(1.33, x)
 	})
 	fct.LineStyle.Color = color.Gray16{}
+	fct.LineStyle.Width = 2
 	fct.LineStyle.Dashes = plotutil.Dashes(1)
 	p.Add(fct)
 	p.Legend.Add("33% daily growth", fct)
