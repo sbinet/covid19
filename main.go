@@ -63,6 +63,7 @@ func genImage(title string, cutoff float64) (image.Image, error) {
 		//	"Korea, South",
 		//	"China",
 		"Germany",
+		"US",
 	}
 	date, dataset, err := fetchData(title, cutoff, countries)
 	if err != nil {
