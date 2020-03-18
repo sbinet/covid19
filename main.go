@@ -167,6 +167,9 @@ loop:
 		rec = rec[4:]
 		data := make([]float64, len(rec))
 		for i, str := range rec {
+			if str == "" {
+				continue
+			}
 			v, err := strconv.ParseFloat(str, 64)
 			if err != nil {
 				return "", nil, fmt.Errorf("could not parse %q: %w", str, err)
