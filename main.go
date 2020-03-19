@@ -17,10 +17,8 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"time"
 
 	"go-hep.org/x/hep/hplot"
-	"gonum.org/v1/gonum/floats"
 	"gonum.org/v1/plot"
 	"gonum.org/v1/plot/plotutil"
 	"gonum.org/v1/plot/vg"
@@ -30,8 +28,8 @@ import (
 
 func main() {
 	http.HandleFunc("/", rootHandle)
-	http.HandleFunc("/img-confirmed", imgHandle("Confirmed", 100))
-	http.HandleFunc("/img-deaths", imgHandle("Deaths", 10))
+	http.HandleFunc("/img-confirmed", imgHandle("cases", 100))
+	http.HandleFunc("/img-deaths", imgHandle("deaths", 10))
 	http.ListenAndServe(":8080", nil)
 }
 
@@ -77,7 +75,7 @@ func genImage(title string, cutoff float64) (image.Image, error) {
 		//	"Korea, South",
 		//	"China",
 		"Germany",
-		"US",
+		"United States",
 		"United Kingdom",
 	}
 	date, dataset, err := fetchData(title, cutoff, countries)
@@ -127,7 +125,8 @@ func genImage(title string, cutoff float64) (image.Image, error) {
 }
 
 func fetchData(title string, cutoff float64, countries []string) (string, map[string][]float64, error) {
-	url := fmt.Sprintf("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_19-covid-%s.csv", title)
+	url := fmt.Sprintf("https://covid.ourworldindata.org/data/total_%s.csv", title)
+	//url := fmt.Sprintf("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_19-covid-%s.csv", title)
 
 	resp, err := http.Get(url)
 	if err != nil {
@@ -142,12 +141,19 @@ func fetchData(title string, cutoff float64, countries []string) (string, map[st
 	if err != nil {
 		return "", nil, fmt.Errorf("could not read CSV header: %w", err)
 	}
-
-	sz := len(hdr) - 4
-	dataset := make(map[string][]float64, len(countries))
-	for _, name := range countries {
-		dataset[name] = make([]float64, sz)
+	n2i := make(map[string]int, len(countries))
+	for i, name := range hdr {
+		n2i[name] = i
 	}
+	delete(n2i, "date")
+	for _, name := range countries {
+		if _, ok := n2i[name]; !ok {
+			return "", nil, fmt.Errorf("could not find country %q in dataset", name)
+		}
+	}
+
+	dataset := make(map[string][]float64, len(countries))
+	date := ""
 
 loop:
 	for {
@@ -158,25 +164,19 @@ loop:
 			}
 			return "", nil, fmt.Errorf("could not read CSV data: %w", err)
 		}
-
-		if _, ok := dataset[rec[1]]; !ok {
-			continue
-		}
-
-		name := rec[1]
-		rec = rec[4:]
-		data := make([]float64, len(rec))
-		for i, str := range rec {
+		date = rec[0]
+		for name, i := range n2i {
+			str := rec[i]
 			if str == "" {
+				dataset[name] = append(dataset[name], 0)
 				continue
 			}
 			v, err := strconv.ParseFloat(str, 64)
 			if err != nil {
 				return "", nil, fmt.Errorf("could not parse %q: %w", str, err)
 			}
-			data[i] = v
+			dataset[name] = append(dataset[name], v)
 		}
-		floats.Add(dataset[name], data)
 	}
 
 	for _, name := range countries {
@@ -192,13 +192,7 @@ loop:
 		dataset[name] = data[idx:]
 	}
 
-	const layout = "1/2/06"
-	date, err := time.Parse(layout, hdr[len(hdr)-1])
-	if err != nil {
-		return "", nil, fmt.Errorf("could not parse date: %w", err)
-	}
-
-	return date.Format("2006-01-02"), dataset, nil
+	return date, dataset, nil
 }
 
 const page = `<!DOCTYPE html>
