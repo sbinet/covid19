@@ -234,7 +234,21 @@ loop:
 		*v.output = date
 	}
 
+	cleanup(title, &dataset)
+
 	return dataset, nil
+}
+
+func cleanup(title string, ds *Dataset) {
+	switch title {
+	case "Deaths":
+		tbl := ds.table["France"]
+		tbl[2] = 30   // 2020-03-09
+		tbl[10] = 175 // 2020-03-17
+		tbl[11] = 244 // 2020-03-18
+		tbl[12] = 372 // 2020-03-19
+	case "Confirmed":
+	}
 }
 
 var (
