@@ -80,14 +80,16 @@ func genImage(title string, cutoff float64) (image.Image, error) {
 		"US",
 		"United Kingdom",
 	}
-	date, dataset, err := fetchData(title, cutoff, countries)
+	ds, err := fetchData(title, cutoff, countries)
 	if err != nil {
 		return nil, fmt.Errorf("could not fetch data: %w", err)
 	}
-	log.Printf("%s: data for %q", title, date)
+	date := ds.date
+	dataset := ds.table
+	log.Printf("%s: data for %q", title, date.Format("2006-01-02"))
 
 	p := hplot.New()
-	p.Title.Text = "CoVid-19 - " + title + " - " + date
+	p.Title.Text = "CoVid-19 - " + title + " - " + date.Format("2006-01-02")
 	p.X.Label.Text = fmt.Sprintf("Days from first %d confirmed cases", int(cutoff))
 	p.Y.Scale = plot.LogScale{}
 	p.Y.Tick.Marker = plot.LogTicks{}
@@ -107,6 +109,19 @@ func genImage(title string, cutoff float64) (image.Image, error) {
 		line.Width = 2
 		p.Add(line)
 		p.Legend.Add(fmt.Sprintf("%s %8d", name, int(ys[len(ys)-1])), line)
+		if lockdown, ok := lockDB[name]; ok {
+			v := ds.cutoff[name]
+			start := ds.start
+			loc := start.Location()
+			beg := time.Date(start.Year(), start.Month(), start.Day()+v, 0, 0, 0, 0, loc)
+			lx := lockdown.Sub(beg).Hours() / 24
+			vline := hplot.VLine(lx, nil, nil)
+			vline.Line.Color = line.Color
+			vline.Line.Dashes = plotutil.Dashes(1)
+			vline.Line.Width = 2
+			p.Add(vline)
+			// p.Legend.Add(fmt.Sprintf("%s - lockdown", name), vline)
+		}
 	}
 	fct := hplot.NewFunction(func(x float64) float64 {
 		return cutoff * math.Pow(1.33, x)
@@ -126,12 +141,24 @@ func genImage(title string, cutoff float64) (image.Image, error) {
 	return cnv.Image(), nil
 }
 
-func fetchData(title string, cutoff float64, countries []string) (string, map[string][]float64, error) {
+type Dataset struct {
+	date   time.Time
+	start  time.Time
+	table  map[string][]float64
+	cutoff map[string]int
+}
+
+func fetchData(title string, cutoff float64, countries []string) (Dataset, error) {
 	url := fmt.Sprintf("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_19-covid-%s.csv", title)
+
+	var dataset = Dataset{
+		table:  make(map[string][]float64, len(countries)),
+		cutoff: make(map[string]int, len(countries)),
+	}
 
 	resp, err := http.Get(url)
 	if err != nil {
-		return "", nil, fmt.Errorf("could not retrieve data file: %w", err)
+		return dataset, fmt.Errorf("could not retrieve data file: %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -140,13 +167,12 @@ func fetchData(title string, cutoff float64, countries []string) (string, map[st
 
 	hdr, err := raw.Read()
 	if err != nil {
-		return "", nil, fmt.Errorf("could not read CSV header: %w", err)
+		return dataset, fmt.Errorf("could not read CSV header: %w", err)
 	}
 
 	sz := len(hdr) - 4
-	dataset := make(map[string][]float64, len(countries))
 	for _, name := range countries {
-		dataset[name] = make([]float64, sz)
+		dataset.table[name] = make([]float64, sz)
 	}
 
 loop:
@@ -156,10 +182,10 @@ loop:
 			if err == io.EOF {
 				break loop
 			}
-			return "", nil, fmt.Errorf("could not read CSV data: %w", err)
+			return dataset, fmt.Errorf("could not read CSV data: %w", err)
 		}
 
-		if _, ok := dataset[rec[1]]; !ok {
+		if _, ok := dataset.table[rec[1]]; !ok {
 			continue
 		}
 
@@ -172,34 +198,51 @@ loop:
 			}
 			v, err := strconv.ParseFloat(str, 64)
 			if err != nil {
-				return "", nil, fmt.Errorf("could not parse %q: %w", str, err)
+				return dataset, fmt.Errorf("could not parse %q: %w", str, err)
 			}
 			data[i] = v
 		}
-		floats.Add(dataset[name], data)
+		floats.Add(dataset.table[name], data)
 	}
 
 	for _, name := range countries {
-		data := dataset[name]
+		data := dataset.table[name]
 		idx := 0
 	cleanup:
 		for i, v := range data {
 			if v >= cutoff {
 				idx = i
+				dataset.cutoff[name] = idx
 				break cleanup
 			}
 		}
-		dataset[name] = data[idx:]
+		dataset.table[name] = data[idx:]
 	}
 
 	const layout = "1/2/06"
-	date, err := time.Parse(layout, hdr[len(hdr)-1])
-	if err != nil {
-		return "", nil, fmt.Errorf("could not parse date: %w", err)
+	for _, v := range []struct {
+		input  string
+		output *time.Time
+	}{
+		{hdr[4], &dataset.start},
+		{hdr[len(hdr)-1], &dataset.date},
+	} {
+		date, err := time.Parse(layout, v.input)
+		if err != nil {
+			return dataset, fmt.Errorf("could not parse date: %w", err)
+		}
+		*v.output = date
 	}
 
-	return date.Format("2006-01-02"), dataset, nil
+	return dataset, nil
 }
+
+var (
+	lockDB = map[string]time.Time{
+		"Italy":  time.Date(2020, 2, 27, 0, 0, 0, 0, time.UTC), // lockdown of northern regions
+		"France": time.Date(2020, 3, 17, 0, 0, 0, 0, time.UTC),
+	}
+)
 
 const page = `<!DOCTYPE html>
 <html>
