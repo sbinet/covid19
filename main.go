@@ -94,6 +94,7 @@ func genImage(title string, cutoff float64) (image.Image, error) {
 	p.Y.Scale = plot.LogScale{}
 	p.Y.Tick.Marker = plot.LogTicks{}
 
+	legends := make(map[string]plot.Thumbnailer)
 	for i, name := range countries {
 		ys := dataset[name]
 		xs := make([]float64, len(ys))
@@ -120,7 +121,7 @@ func genImage(title string, cutoff float64) (image.Image, error) {
 			vline.Line.Dashes = plotutil.Dashes(1)
 			vline.Line.Width = 2
 			p.Add(vline)
-			// p.Legend.Add(fmt.Sprintf("%s - lockdown", name), vline)
+			legends[name] = vline
 		}
 	}
 	fct := hplot.NewFunction(func(x float64) float64 {
@@ -131,6 +132,9 @@ func genImage(title string, cutoff float64) (image.Image, error) {
 	fct.LineStyle.Dashes = plotutil.Dashes(1)
 	p.Add(fct)
 	p.Legend.Add("33% daily growth", fct)
+	for _, name := range []string{"Italy", "France"} {
+		p.Legend.Add(fmt.Sprintf("%s - lockdown", name), legends[name])
+	}
 	p.Add(hplot.NewGrid())
 
 	const sz = 20 * vg.Centimeter
