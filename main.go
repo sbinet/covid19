@@ -29,9 +29,13 @@ import (
 )
 
 func main() {
+	log.SetPrefix("covid19: ")
+	log.SetFlags(0)
+
 	http.HandleFunc("/", rootHandle)
-	http.HandleFunc("/img-confirmed", imgHandle("Confirmed", 100))
-	http.HandleFunc("/img-deaths", imgHandle("Deaths", 10))
+	http.HandleFunc("/img-confirmed", imgHandle("confirmed", 100))
+	http.HandleFunc("/img-deaths", imgHandle("deaths", 10))
+	log.Printf("ready to serve...")
 	http.ListenAndServe(":8080", nil)
 }
 
@@ -153,7 +157,7 @@ type Dataset struct {
 }
 
 func fetchData(title string, cutoff float64, countries []string) (Dataset, error) {
-	url := fmt.Sprintf("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_19-covid-%s.csv", title)
+	url := fmt.Sprintf("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_%s_global.csv", title)
 
 	var dataset = Dataset{
 		table:  make(map[string][]float64, len(countries)),
