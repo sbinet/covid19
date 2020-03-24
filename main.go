@@ -95,6 +95,7 @@ func genImage(title string, cutoff float64) (image.Image, error) {
 	p := hplot.New()
 	p.Title.Text = "CoVid-19 - " + title + " - " + date.Format("2006-01-02")
 	p.X.Label.Text = fmt.Sprintf("Days from first %d confirmed cases", int(cutoff))
+	p.X.Tick.Marker = hplot.Ticks{N: 20}
 	p.Y.Scale = plot.LogScale{}
 	p.Y.Tick.Marker = plot.LogTicks{}
 
