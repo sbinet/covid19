@@ -264,6 +264,7 @@ var (
 	lockDB = map[string]time.Time{
 		"Italy":  time.Date(2020, 2, 27, 0, 0, 0, 0, time.UTC), // lockdown of northern regions
 		"France": time.Date(2020, 3, 17, 0, 0, 0, 0, time.UTC),
+		"UK": time.Date(2020, 3, 23, 0, 0, 0, 0, time.UTC),
 	}
 )
 
