@@ -123,7 +123,7 @@ func genImage(title string, cutoff float64) (image.Image, error) {
 			lx := lockdown.Sub(beg).Hours() / 24
 			vline := hplot.VLine(lx, nil, nil)
 			vline.Line.Color = line.Color
-			vline.Line.Dashes = plotutil.Dashes(1)
+			vline.Line.Dashes = plotutil.Dashes(i)
 			vline.Line.Width = 2
 			p.Add(vline)
 			legends[name] = vline
@@ -137,7 +137,7 @@ func genImage(title string, cutoff float64) (image.Image, error) {
 	fct.LineStyle.Dashes = plotutil.Dashes(1)
 	p.Add(fct)
 	p.Legend.Add("33% daily growth", fct)
-	for _, name := range []string{"Italy", "France"} {
+	for _, name := range []string{"Italy", "France", "United Kingdom"} {
 		p.Legend.Add(fmt.Sprintf("%s - lockdown", name), legends[name])
 	}
 	p.Add(hplot.NewGrid())
@@ -262,9 +262,9 @@ func cleanup(title string, ds *Dataset) {
 
 var (
 	lockDB = map[string]time.Time{
-		"Italy":  time.Date(2020, 2, 27, 0, 0, 0, 0, time.UTC), // lockdown of northern regions
-		"France": time.Date(2020, 3, 17, 0, 0, 0, 0, time.UTC),
-		"UK": time.Date(2020, 3, 23, 0, 0, 0, 0, time.UTC),
+		"Italy":          time.Date(2020, 2, 27, 0, 0, 0, 0, time.UTC), // lockdown of northern regions
+		"France":         time.Date(2020, 3, 17, 0, 0, 0, 0, time.UTC),
+		"United Kingdom": time.Date(2020, 3, 23, 0, 0, 0, 0, time.UTC),
 	}
 )
 
