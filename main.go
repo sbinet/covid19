@@ -236,7 +236,7 @@ loop:
 		{hdr[4], &dataset.start},
 		{hdr[len(hdr)-1], &dataset.date},
 	} {
-		date, err := time.Parse(layout, v.input)
+		date, err := parseDate(v.input, layout, "1/2/2006")
 		if err != nil {
 			return dataset, fmt.Errorf("could not parse date: %w", err)
 		}
@@ -246,6 +246,20 @@ loop:
 	cleanup(title, &dataset)
 
 	return dataset, nil
+}
+
+func parseDate(v string, layouts ...string) (time.Time, error) {
+	var err error
+	for _, layout := range layouts {
+		date, ee := time.Parse(layout, v)
+		if ee == nil {
+			return date, nil
+		}
+		if err == nil {
+			err = ee
+		}
+	}
+	return time.Time{}, err
 }
 
 func cleanup(title string, ds *Dataset) {
