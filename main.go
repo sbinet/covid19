@@ -92,61 +92,116 @@ func genImage(title string, cutoff float64) (image.Image, error) {
 	dataset := ds.table
 	log.Printf("%s: data for %q", title, date.Format("2006-01-02"))
 
-	p := hplot.New()
-	p.Title.Text = "CoVid-19 - " + title + " - " + date.Format("2006-01-02")
-	p.X.Label.Text = fmt.Sprintf("Days from first %d confirmed cases", int(cutoff))
-	p.X.Tick.Marker = hplot.Ticks{N: 20}
-	p.Y.Scale = plot.LogScale{}
-	p.Y.Tick.Marker = plot.LogTicks{}
+	tp := hplot.NewTiledPlot(draw.Tiles{Rows: 2, Cols: 1})
+	tp.Align = true
 
-	legends := make(map[string]plot.Thumbnailer)
-	for i, name := range countries {
-		ys := dataset[name]
-		xs := make([]float64, len(ys))
-		for i := range xs {
-			xs[i] = float64(i)
+	{
+		p := tp.Plots[0]
+		p.Title.Text = "CoVid-19 - " + title + " (cumulative) - " + date.Format("2006-01-02")
+		p.X.Label.Text = fmt.Sprintf("Days from first %d confirmed cases", int(cutoff))
+		p.X.Tick.Marker = hplot.Ticks{N: 20}
+		p.Y.Scale = plot.LogScale{}
+		p.Y.Tick.Marker = plot.LogTicks{}
+
+		legends := make(map[string]plot.Thumbnailer)
+		for i, name := range countries {
+			ys := dataset[name]
+			xs := make([]float64, len(ys))
+			for i := range xs {
+				xs[i] = float64(i)
+			}
+			xys := hplot.ZipXY(xs, ys)
+			line, err := hplot.NewLine(xys)
+			if err != nil {
+				return nil, fmt.Errorf("could not create line plot for %q: %w", name, err)
+			}
+			line.Color = plotutil.SoftColors[i]
+			line.Width = 2
+			p.Add(line)
+			p.Legend.Add(fmt.Sprintf("%s %8d", name, int(ys[len(ys)-1])), line)
+			if lockdown, ok := lockDB[name]; ok {
+				v := ds.cutoff[name]
+				start := ds.start
+				loc := start.Location()
+				beg := time.Date(start.Year(), start.Month(), start.Day()+v, 0, 0, 0, 0, loc)
+				lx := lockdown.Sub(beg).Hours() / 24
+				vline := hplot.VLine(lx, nil, nil)
+				vline.Line.Color = line.Color
+				vline.Line.Dashes = plotutil.Dashes(i)
+				vline.Line.Width = 2
+				p.Add(vline)
+				legends[name] = vline
+			}
 		}
-		xys := hplot.ZipXY(xs, ys)
-		line, err := hplot.NewLine(xys)
-		if err != nil {
-			return nil, fmt.Errorf("could not create line plot for %q: %w", name, err)
+		fct := hplot.NewFunction(func(x float64) float64 {
+			return cutoff * math.Pow(1.33, x)
+		})
+		fct.LineStyle.Color = color.Gray16{}
+		fct.LineStyle.Width = 2
+		fct.LineStyle.Dashes = plotutil.Dashes(1)
+		p.Add(fct)
+		p.Legend.Add("33% daily growth", fct)
+		for _, name := range []string{"Italy", "France", "United Kingdom"} {
+			p.Legend.Add(fmt.Sprintf("%s - lockdown", name), legends[name])
 		}
-		line.Color = plotutil.SoftColors[i]
-		line.Width = 2
-		p.Add(line)
-		p.Legend.Add(fmt.Sprintf("%s %8d", name, int(ys[len(ys)-1])), line)
-		if lockdown, ok := lockDB[name]; ok {
-			v := ds.cutoff[name]
-			start := ds.start
-			loc := start.Location()
-			beg := time.Date(start.Year(), start.Month(), start.Day()+v, 0, 0, 0, 0, loc)
-			lx := lockdown.Sub(beg).Hours() / 24
-			vline := hplot.VLine(lx, nil, nil)
-			vline.Line.Color = line.Color
-			vline.Line.Dashes = plotutil.Dashes(i)
-			vline.Line.Width = 2
-			p.Add(vline)
-			legends[name] = vline
-		}
+		p.Add(hplot.NewGrid())
 	}
-	fct := hplot.NewFunction(func(x float64) float64 {
-		return cutoff * math.Pow(1.33, x)
-	})
-	fct.LineStyle.Color = color.Gray16{}
-	fct.LineStyle.Width = 2
-	fct.LineStyle.Dashes = plotutil.Dashes(1)
-	p.Add(fct)
-	p.Legend.Add("33% daily growth", fct)
-	for _, name := range []string{"Italy", "France", "United Kingdom"} {
-		p.Legend.Add(fmt.Sprintf("%s - lockdown", name), legends[name])
+
+	{
+		p := tp.Plots[1]
+		p.Title.Text = "CoVid-19 - " + title + " (daily) - " + date.Format("2006-01-02")
+		p.X.Label.Text = fmt.Sprintf("Days from first %d confirmed cases", int(cutoff))
+		p.X.Tick.Marker = hplot.Ticks{N: 20}
+
+		legends := make(map[string]plot.Thumbnailer)
+		for i, name := range countries {
+			ys := make([]float64, len(dataset[name]))
+			copy(ys, dataset[name])
+			for i := range ys {
+				if i == 0 {
+					continue
+				}
+
+				ys[i] = math.Max(0, ys[i]-dataset[name][i-1])
+			}
+			xs := make([]float64, len(ys))
+			for i := range xs {
+				xs[i] = float64(i)
+			}
+			xys := hplot.ZipXY(xs, ys)
+			line, err := hplot.NewLine(xys)
+			if err != nil {
+				return nil, fmt.Errorf("could not create line plot for %q: %w", name, err)
+			}
+			line.Color = plotutil.SoftColors[i]
+			line.Width = 2
+			p.Add(line)
+			p.Legend.Add(fmt.Sprintf("%s %8d", name, int(ys[len(ys)-1])), line)
+			if lockdown, ok := lockDB[name]; ok {
+				v := ds.cutoff[name]
+				start := ds.start
+				loc := start.Location()
+				beg := time.Date(start.Year(), start.Month(), start.Day()+v, 0, 0, 0, 0, loc)
+				lx := lockdown.Sub(beg).Hours() / 24
+				vline := hplot.VLine(lx, nil, nil)
+				vline.Line.Color = line.Color
+				vline.Line.Dashes = plotutil.Dashes(i)
+				vline.Line.Width = 2
+				p.Add(vline)
+				legends[name] = vline
+			}
+		}
+		for _, name := range []string{"Italy", "France", "United Kingdom"} {
+			p.Legend.Add(fmt.Sprintf("%s - lockdown", name), legends[name])
+		}
+		p.Add(hplot.NewGrid())
 	}
-	p.Add(hplot.NewGrid())
 
 	const sz = 20 * vg.Centimeter
-	cnv := vgimg.PngCanvas{vgimg.New(sz*math.Phi, sz)}
+	cnv := vgimg.PngCanvas{vgimg.New(sz*math.Phi, 2*sz)}
 
 	c := draw.New(cnv)
-	p.Draw(c)
+	tp.Draw(c)
 	return cnv.Image(), nil
 }
 
