@@ -152,6 +152,8 @@ func genImage(title string, cutoff float64) (image.Image, error) {
 		p.Title.Text = "CoVid-19 - " + title + " (daily) - " + date.Format("2006-01-02")
 		p.X.Label.Text = fmt.Sprintf("Days from first %d confirmed cases", int(cutoff))
 		p.X.Tick.Marker = hplot.Ticks{N: 20}
+		p.Legend.Left = true
+		p.Legend.Top = true
 
 		legends := make(map[string]plot.Thumbnailer)
 		for i, name := range countries {
@@ -176,7 +178,7 @@ func genImage(title string, cutoff float64) (image.Image, error) {
 			line.Color = plotutil.SoftColors[i]
 			line.Width = 2
 			p.Add(line)
-			p.Legend.Add(fmt.Sprintf("%s %8d", name, int(ys[len(ys)-1])), line)
+			p.Legend.Add(fmt.Sprintf("%8d %s", int(ys[len(ys)-1]), name), line)
 			if lockdown, ok := lockDB[name]; ok {
 				v := ds.cutoff[name]
 				start := ds.start
@@ -318,14 +320,17 @@ func parseDate(v string, layouts ...string) (time.Time, error) {
 }
 
 func cleanup(title string, ds *Dataset) {
-	switch title {
-	case "Deaths":
+	switch strings.ToLower(title) {
+	case "deaths":
 		tbl := ds.table["France"]
-		tbl[2] = 30   // 2020-03-09
-		tbl[10] = 175 // 2020-03-17
-		tbl[11] = 244 // 2020-03-18
-		tbl[12] = 372 // 2020-03-19
-	case "Confirmed":
+		tbl[2] = 30    // 2020-03-09
+		tbl[10] = 175  // 2020-03-17
+		tbl[11] = 244  // 2020-03-18
+		tbl[12] = 372  // 2020-03-19
+		tbl[26] = 4503 // 2020-04-02
+	case "confirmed":
+	default:
+		panic(fmt.Errorf("invalid title: %q", title))
 	}
 }
 
