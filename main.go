@@ -323,11 +323,11 @@ func cleanup(title string, ds *Dataset) {
 	switch strings.ToLower(title) {
 	case "deaths":
 		tbl := ds.table["France"]
-		tbl[2] = 30    // 2020-03-09
-		tbl[10] = 175  // 2020-03-17
-		tbl[11] = 244  // 2020-03-18
-		tbl[12] = 372  // 2020-03-19
-		tbl[26] = 4503 // 2020-04-02
+		tbl[2] = 30   // 2020-03-09
+		tbl[10] = 175 // 2020-03-17
+		tbl[11] = 244 // 2020-03-18
+		tbl[12] = 372 // 2020-03-19
+		// tbl[26] = 4503 // 2020-04-02. number was actually correct (includes death toll from EHPADs)
 	case "confirmed":
 	default:
 		panic(fmt.Errorf("invalid title: %q", title))
