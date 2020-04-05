@@ -329,6 +329,8 @@ func cleanup(title string, ds *Dataset) {
 		tbl[12] = 372 // 2020-03-19
 		// tbl[26] = 4503 // 2020-04-02. number was actually correct (includes death toll from EHPADs)
 	case "confirmed":
+		tbl := ds.table["France"]
+		tbl[35] = 68605 // 2020-04-04
 	default:
 		panic(fmt.Errorf("invalid title: %q", title))
 	}
