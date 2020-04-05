@@ -115,7 +115,7 @@ func genImage(title string, cutoff float64) (image.Image, error) {
 			if err != nil {
 				return nil, fmt.Errorf("could not create line plot for %q: %w", name, err)
 			}
-			line.Color = plotutil.SoftColors[i]
+			line.Color = softcolor(i)
 			line.Width = 2
 			p.Add(line)
 			p.Legend.Add(fmt.Sprintf("%s %8d", name, int(ys[len(ys)-1])), line)
@@ -175,7 +175,7 @@ func genImage(title string, cutoff float64) (image.Image, error) {
 			if err != nil {
 				return nil, fmt.Errorf("could not create line plot for %q: %w", name, err)
 			}
-			line.Color = plotutil.SoftColors[i]
+			line.Color = softcolor(i)
 			line.Width = 2
 			p.Add(line)
 			p.Legend.Add(fmt.Sprintf("%8d %s", int(ys[len(ys)-1]), name), line)
@@ -343,6 +343,10 @@ var (
 		"United Kingdom": time.Date(2020, 3, 23, 0, 0, 0, 0, time.UTC),
 	}
 )
+
+func softcolor(i int) color.Color {
+	return plotutil.SoftColors[i%len(plotutil.SoftColors)]
+}
 
 const page = `<!DOCTYPE html>
 <html>
