@@ -332,6 +332,7 @@ func cleanup(title string, ds *Dataset) {
 		tbl := ds.table["France"]
 		tbl[35] = 68605 // 2020-04-04
 		tbl[36] = 70478 // 2020-04-05
+		tbl[37] = 74390 // 2020-04-06
 	default:
 		panic(fmt.Errorf("invalid title: %q", title))
 	}
