@@ -339,6 +339,7 @@ func cleanup(title string, ds *Dataset) {
 		tbl[41] = 90676 // 2020-04-10
 		tbl[42] = 93790 // 2020-04-11
 		tbl[43] = 95403 // 2020-04-12
+		tbl[44] = 98076 // 2020-04-13
 	default:
 		panic(fmt.Errorf("invalid title: %q", title))
 	}
