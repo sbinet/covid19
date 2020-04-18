@@ -152,6 +152,7 @@ func genImage(title string, cutoff float64) (image.Image, error) {
 		p.Title.Text = "CoVid-19 - " + title + " (daily) - " + date.Format("2006-01-02")
 		p.X.Label.Text = fmt.Sprintf("Days from first %d confirmed cases", int(cutoff))
 		p.X.Tick.Marker = hplot.Ticks{N: 20}
+		p.Y.Tick.Marker = hplot.Ticks{N: 20}
 		p.Legend.Left = true
 		p.Legend.Top = true
 
@@ -343,6 +344,7 @@ func cleanup(title string, ds *Dataset) {
 		tbl[45] = 103573 // 2020-04-14
 		tbl[46] = 106206 // 2020-04-15
 		tbl[47] = 108847 // 2020-04-16
+		tbl[48] = 109252 // 2020-04-17
 	default:
 		panic(fmt.Errorf("invalid title: %q", title))
 	}
